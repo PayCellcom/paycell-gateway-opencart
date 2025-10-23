@@ -1,0 +1,12 @@
+{
+  "name": "Paycell Payment Gateway",
+  "code": "paycell_payment_gateway",
+  "author": "Paycell",
+  "version": "1.0.0",
+  "link": "https://paycell.com.tr",
+  "description": "An integration that enables you to receive secure and fast payments in your OpenCart store through the Paycell infrastructure.",
+  "install": [
+  ],
+  "uninstall": [
+  ]
+}

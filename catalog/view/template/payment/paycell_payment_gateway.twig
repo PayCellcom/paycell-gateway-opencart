@@ -1,0 +1,590 @@
+<style>
+    .paycell-form {
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .paycell-form .form-group {
+        margin-bottom: 15px;
+    }
+
+    .paycell-form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .paycell-form input[type="text"],
+    .paycell-form input[type="number"],
+    .paycell-form select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .paycell-form select:disabled {
+        background-color: #f5f5f5;
+        color: #999;
+        cursor: not-allowed;
+    }
+
+    .paycell-form .row {
+        display: flex;
+        gap: 10px;
+    }
+
+    .paycell-form .col-6 {
+        flex: 1;
+    }
+
+    .paycell-form .col-4 {
+        flex: 0 0 33.333%;
+    }
+
+    .paycell-form .col-8 {
+        flex: 0 0 66.666%;
+    }
+
+    .paycell-form button {
+        width: 100%;
+        padding: 12px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .paycell-form button:hover {
+        background: #0056b3;
+    }
+
+    .paycell-form button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .paycell-form .error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .paycell-form .loading {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div id="paycell_payment_gateway_container">
+    {% if paycell_error %}
+        <div class="alert alert-danger">{{ paycell_error }}</div>
+    {% endif %}
+
+    <form id="paycell-payment-form" class="paycell-form">
+        <div class="form-group" style="text-align:center; margin-bottom: 20px;">
+            <img src="extension/paycell_payment_gateway/catalog/view/image/payment/paycell-logo.png" alt="Paycell" style="height:28px;" />
+        </div>
+        <div class="form-group">
+            <label for="card_holder_name">{{ text_card_holder_name }} *</label>
+            <input type="text" id="card_holder_name" name="card_holder_name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="card_number">{{ text_card_number }} *</label>
+            <input type="text" id="card_number" name="card_number" placeholder="1234 5678 9012 3456" required>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-6">
+                    <label for="expiry_date">{{ text_expiry_date }} *</label>
+                    <input type="text" id="expiry_date" name="expiry_date" placeholder="MM/YY" maxlength="5" required>
+                </div>
+                <div class="col-6">
+                    <label for="cvv">{{ text_cvv }} *</label>
+                    <input type="text" id="cvv" name="cvv" placeholder="123" maxlength="4" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="installment">{{ text_installment }}</label>
+            <select id="installment" name="installment" disabled>
+                <option value="1">1 {{ text_installment_single }}</option>
+            </select>
+        </div>
+
+        <button type="submit" id="paycell-submit-btn">
+            <span id="btn-text">{{ text_pay_now }}</span>
+            <div id="btn-loading" class="spinner" style="display: none;"></div>
+        </button>
+
+        <div id="paycell-errors" class="error" style="display: none;"></div>
+    </form>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        const $btn = $('#paycell-submit-btn');
+        const $btnText = $('#btn-text');
+        const $btnLoading = $('#btn-loading');
+        const $errors = $('#paycell-errors');
+        function showError(message) {
+                $errors.text(message).show();
+                $btn.prop('disabled', false);
+                $btnText.show();
+                $btnLoading.hide();
+            }
+        // Format expiry date input (MM/YY)
+        $('#expiry_date').on('input', function() {
+            let value = this.value.replace(/\D/g, ''); // Remove non-digits
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            this.value = value;
+        });
+
+        // Format card number
+        $('#card_number').on('input', function() {
+            let value = this.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            this.value = formattedValue;
+            
+            // Disable installment if less than 6 digits
+            if (value.length < 6) {
+                disableInstallmentOptions();
+            } else {
+                // Check BIN when we have at least 6 digits
+                const binNumber = value.substring(0, 6);
+                checkBinInfo(binNumber);
+            }
+        });
+
+        // Handle form submission
+        $('#paycell-payment-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            const $form = $(this);
+
+            // Clear previous errors
+            $errors.hide().text('');
+
+            // Show loading state
+            $btn.prop('disabled', true);
+            $btnText.hide();
+            $btnLoading.show();
+
+            // Get form data
+            const paymentData = {
+                card_number: $('#card_number').val().replace(/\s/g, ''),
+                card_expiry: $('#expiry_date').val(),
+                card_cvc: $('#cvv').val(),
+                card_owner: $('#card_holder_name').val(),
+                installment: $('#installment').val()
+            };
+
+            // Validate form data
+            if (!validateFormData(paymentData)) {
+                showError('{{ text_validation_error|default("Please fill in all required fields correctly") }}');
+                return;
+            }
+
+            // Generate transaction ID and timestamp
+            const transactionId = generateTransactionId();
+            const transactionNumber = generateTransactionNumber();
+            const transactionTime = generateTransactionTime();
+
+            // Prepare transaction data for backend
+            const transactionData = {
+                transactionId: transactionId,
+                transactionDateTime: transactionTime,
+                creditCardNo: paymentData.card_number,
+                expireDateMonth: paymentData.card_expiry.split('/')[0],
+                expireDateYear: paymentData.card_expiry.split('/')[1],
+                cvcNo: paymentData.card_cvc,
+                ccAuthor: paymentData.card_owner
+            };
+
+            // First, get hash data from backend
+            fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.getHashData', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    transaction_data: transactionData,
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to get hash data from backend');
+                }
+                return response.json();
+            })
+            .then(hashResponse => {
+                if (hashResponse.success && hashResponse.hashData) {
+                    // Now make request to PayCell API with backend-generated hash
+                    const requestData = {
+                        header: {
+                            applicationName: hashResponse.applicationName,
+                            transactionId: transactionId,
+                            transactionDateTime: transactionTime,
+                        },
+                        creditCardNo: paymentData.card_number,
+                        expireDateMonth: paymentData.card_expiry.split('/')[0],
+                        expireDateYear: paymentData.card_expiry.split('/')[1],
+                        cvcNo: paymentData.card_cvc,
+                        ccAuthor: paymentData.card_owner,
+                        hashData: hashResponse.hashData
+                    };
+
+                    // Make direct request to PayCell API
+                    return fetch('{{ card_token_url }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData),
+                    });
+                } else {
+                    throw new Error(hashResponse.errorMessage || 'Failed to generate hash data');
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success || data.cardToken) {
+                    // Card token received successfully, now generate 3DS session
+                    generate3DSSession(data.cardToken || data.token, transactionId, transactionTime, transactionNumber);
+                } else {
+                    showError(data.errorMessage || data.message || '{{ text_payment_failed }}');
+                }
+            })
+            .catch(error => {
+                console.error('Payment error:', error);
+                showError(error.message || '{{ text_payment_failed }}');
+            });
+        });
+
+        // Generate transaction ID
+        function generateTransactionId() {
+            const timestamp = Date.now().toString(); // 13 digits
+            const random = Math.floor(Math.random() * 1e7).toString().padStart(7, '0'); // 7 digits
+            const transactionId = timestamp + random; // 13 + 7 = 20 digits
+            return transactionId;
+        }
+
+        function generateTransactionNumber() {
+            const numberTimestamp = Date.now().toString();
+            const numberRandom = Math.floor(Math.random() * 1e7).toString().padStart(7, '0');
+            const transactionNumber = numberTimestamp + numberRandom;
+            return transactionNumber;
+        }
+
+        function generateTransactionTime() {
+            const now = new Date();
+            const formatted = now.getFullYear().toString() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0') +
+            String(now.getMilliseconds()).padStart(3, '0');
+            return formatted;
+        }
+
+
+        // Validate form data
+        function validateFormData(data) {
+            // Check if all required fields are filled
+            if (!data.card_number || !data.card_cvc || !data.card_owner || !data.card_expiry) {
+                return false;
+            }
+
+            // Validate card number (basic Luhn algorithm check)
+            if (!validateCardNumber(data.card_number)) {
+                //return false;
+            }
+
+            // Validate CVV
+            if (!/^\d{3,4}$/.test(data.card_cvc)) {
+                return false;
+            }
+
+            // Validate expiry date (MM/YY format)
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits of year
+            const currentMonth = currentDate.getMonth() + 1;
+            const [expiryMonth, expiryYear] = data.card_expiry.split('/');
+            
+            // Convert 2-digit year to 4-digit year
+            const fullExpiryYear = parseInt(expiryYear) + 2000;
+            const fullCurrentYear = currentDate.getFullYear();
+            
+            if (fullExpiryYear < fullCurrentYear || 
+                (fullExpiryYear === fullCurrentYear && parseInt(expiryMonth) < currentMonth)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Validate card number using Luhn algorithm
+        function validateCardNumber(cardNumber) {
+            const cleaned = cardNumber.replace(/\s/g, '');
+            if (!/^\d{13,19}$/.test(cleaned)) {
+                return false;
+            }
+
+            let sum = 0;
+            let isEven = false;
+
+            for (let i = cleaned.length - 1; i >= 0; i--) {
+                let digit = parseInt(cleaned.charAt(i));
+
+                if (isEven) {
+                    digit *= 2;
+                    if (digit > 9) {
+                        digit -= 9;
+                    }
+                }
+
+                sum += digit;
+                isEven = !isEven;
+            }
+
+            return sum % 10 === 0;
+        }
+
+        // Generate 3DS session after getting card token
+        function generate3DSSession(cardToken, transactionId, transactionTime, transactionNumber) {
+            const $btn = $('#paycell-submit-btn');
+            const $btnText = $('#btn-text');
+            const $btnLoading = $('#btn-loading');
+            const $errors = $('#paycell-errors');
+
+            // Show loading state for 3DS session
+            $btn.prop('disabled', true);
+            $btnText.hide();
+            $btnLoading.show();
+
+            // Prepare order data for 3DS session
+            const orderData = {
+                cardToken: cardToken,
+                installment: $('#installment').val() || '1',
+                transactionId: transactionId,
+                transactionDateTime: transactionTime,
+                transactionNumber: transactionNumber
+            };
+
+            // Request 3DS session from backend
+            fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.generate3DSSession', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => {
+                console.log(response);
+                if (!response.ok) {
+                    throw new Error('Failed to generate 3DS session');
+                }
+                return response.json();
+            })
+            .then(sessionResponse => {
+                console.log(sessionResponse);
+                if (sessionResponse.success && sessionResponse.sessionData) {
+                    // 3DS session generated successfully
+                    handle3DSSession(sessionResponse.sessionData);
+                } else {
+                    showError(sessionResponse.errorMessage || 'Failed to generate 3DS session');
+                }
+            })
+            .catch(error => {
+                console.error('3DS session error:', error);
+                showError(error.message || 'Failed to generate 3DS session');
+            });
+        }
+
+        // Handle 3DS session response
+        function handle3DSSession(sessionData) {
+            console.log(sessionData);
+            const $btn = $('#paycell-submit-btn');
+            const $btnText = $('#btn-text');
+            const $btnLoading = $('#btn-loading');
+            const $errors = $('#paycell-errors');
+
+            // Hide loading state
+            $btn.prop('disabled', false);
+            $btnText.show();
+            $btnLoading.hide();
+
+            if (sessionData.redirectUrl) {
+                // Redirect to 3DS authentication page
+                window.location.href = sessionData.redirectUrl;
+            } else if (sessionData.threeDSessionId && sessionData.threeDSecureUrl) {
+                // Create and submit 3DS form directly
+                createAndSubmit3DSForm(sessionData);
+            } else if (sessionData.success) {
+                // Payment completed successfully
+                window.location.href = '{{ checkout_success_url|default("index.php?route=checkout/success") }}';
+            } else {
+                showError(sessionData.errorMessage || '3DS authentication failed');
+            }
+        }
+
+        // Create and submit 3DS form directly
+        function createAndSubmit3DSForm(sessionData) {
+            // Create a form element
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = sessionData.threeDSecureUrl;
+            form.style.display = 'none';
+
+            // Add threeDSessionId field
+            const sessionIdInput = document.createElement('input');
+            sessionIdInput.type = 'hidden';
+            sessionIdInput.name = 'threeDSessionId';
+            sessionIdInput.value = sessionData.threeDSessionId;
+            form.appendChild(sessionIdInput);
+
+            // Add callback URL field
+            const callbackInput = document.createElement('input');
+            callbackInput.type = 'hidden';
+            callbackInput.name = 'callbackurl';
+            callbackInput.value = sessionData.callbackUrl;
+            form.appendChild(callbackInput);
+
+            // Add form to page and submit
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // BIN check function
+        function checkBinInfo(binNumber) {
+            // Debounce the BIN check to avoid too many requests
+            clearTimeout(window.binCheckTimeout);
+            window.binCheckTimeout = setTimeout(() => {
+                // Generate transaction data on client side
+                const transactionId = generateTransactionId();
+                const transactionDateTime = generateTransactionTime();
+                
+                fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.checkBinInfo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        binNumber: binNumber,
+                        transactionId: transactionId,
+                        transactionDateTime: transactionDateTime
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('BIN check request failed');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        handleBinInfoResponse(data);
+                    } else {
+                        console.log('BIN check failed:', data.errorMessage || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.log('BIN check error:', error.message);
+                });
+            }, 500); // 500ms debounce
+        }
+
+        // Handle BIN info response
+        function handleBinInfoResponse(binInfo) {
+            console.log('BIN Info received:', binInfo);
+            
+            // Handle installment options based on canInstallment status
+            if (binInfo.canInstallment) {
+                enableInstallmentOptions();
+            } else {
+                disableInstallmentOptions();
+            }
+        }
+
+        // Enable installment options
+        function enableInstallmentOptions() {
+            const installmentSelect = document.querySelector('#installment');
+            if (installmentSelect) {
+                installmentSelect.disabled = false;
+                installmentSelect.style.opacity = '1';
+                
+                // Clear existing options except the first one
+                while (installmentSelect.children.length > 1) {
+                    installmentSelect.removeChild(installmentSelect.lastChild);
+                }
+                
+                // Add installment options
+                const installmentOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                installmentOptions.forEach(count => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = count;
+                    optionElement.textContent = count + ' ' + (count === 1 ? '{{ text_installment_single }}' : '{{ text_installment_plural }}');
+                    installmentSelect.appendChild(optionElement);
+                });
+            }
+        }
+
+        // Disable installment options
+        function disableInstallmentOptions() {
+            const installmentSelect = document.querySelector('#installment');
+            if (installmentSelect) {
+                installmentSelect.disabled = true;
+                installmentSelect.style.opacity = '0.5';
+                
+                // Clear existing options except the first one
+                while (installmentSelect.children.length > 1) {
+                    installmentSelect.removeChild(installmentSelect.lastChild);
+                }
+                
+                // Ensure only single payment option exists
+                if (installmentSelect.children.length === 0) {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = 1;
+                    optionElement.textContent = '1 {{ text_installment_single }}';
+                    installmentSelect.appendChild(optionElement);
+                }
+            }
+        }
+    });
+</script>
+
