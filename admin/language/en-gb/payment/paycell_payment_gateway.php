@@ -22,6 +22,7 @@ $_['text_secure_code_help'] = 'Your PayCell secure code provided by PayCell.';
 // Entry
 $_['entry_status'] = 'Status';
 $_['entry_title'] = 'Title';
+$_['text_title'] = 'Paycell Payment Gateway';
 $_['entry_sandbox_mode'] = 'Sandbox Mode';
 $_['entry_application_name'] = 'Application Name';
 $_['entry_application_password'] = 'Application Password';
@@ -37,5 +38,8 @@ $_['error_permission'] = 'You are not authorized';
 
 $_['text_enabled'] = 'Enabled';
 $_['text_disabled'] = 'Disabled';
+
+$_['button_save'] = 'Save';
+$_['button_cancel'] = 'Cancel';
 
 

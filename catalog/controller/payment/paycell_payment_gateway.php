@@ -14,8 +14,12 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
             $data['paycell_error'] = '';
         }
         
-        // Pass card token URL to template
         $data['card_token_url'] = $this->getCardTokenUrl();
+        if (!isset($this->session->data['csrf_token'])) {
+            $this->session->data['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        $data['csrf_token'] = $this->session->data['csrf_token'];
+
         
         return $this->load->view('extension/paycell_payment_gateway/payment/paycell_payment_gateway', $data);
     }
@@ -50,18 +54,25 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
         return base64_encode(hash('sha256', strtoupper($hashData), true));
     }
 
+    private function validateCsrfToken()
+    {
+        $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+        if (!isset($this->session->data['csrf_token']) || $this->session->data['csrf_token'] !== $csrfToken) {
+            throw new \Exception('Invalid CSRF token');
+        }
+    }
+
     public function getHashData()
     {
         $this->response->addHeader('Content-Type: application/json');
         try {
-            // Get JSON input
+            $this->validateCsrfToken();
             $input = json_decode(file_get_contents('php://input'), true);
             
             if (!$input || !isset($input['transaction_data'])) {
                 throw new \Exception('Invalid request data');
             }
             
-            // Generate hash data using PayCell's algorithm
             $hashData = $this->generateHashData($input['transaction_data']['transactionId'], $input['transaction_data']['transactionDateTime']);
             
             $this->response->setOutput(json_encode([
@@ -80,19 +91,17 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
     {
         $this->response->addHeader('Content-Type: application/json');
         try {
-            // Get JSON input
+            $this->validateCsrfToken();
             $input = json_decode(file_get_contents('php://input'), true);
             
             if (!$input || !isset($input['binNumber'])) {
                 throw new \Exception('BIN number is required');
             }
             
-            // Use client-generated transaction data
             if (!isset($input['transactionId']) || !isset($input['transactionDateTime'])) {
                 throw new \Exception('Transaction ID and DateTime are required');
             }
             
-            // Prepare session data for BIN check using client data
             $sessionData = [
                 'transactionId' => $input['transactionId'],
                 'transactionDateTime' => $input['transactionDateTime'],
@@ -100,10 +109,8 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
                 'binNumber' => $input['binNumber']
             ];
             
-            // Make BIN check request
             $response = $this->makeBinCheckRequest($sessionData);
             if ($response && isset($response['responseHeader']['responseCode']) && $response['responseHeader']['responseCode'] == '0') {
-                // Parse BIN info response
                 if (isset($response['cardBinInformations']) && count($response['cardBinInformations']) > 0) {
                     $cardInfo = $response['cardBinInformations'][0];
                     $isCreditCard = $cardInfo['cardType'] === 'Credit Card';
@@ -134,14 +141,13 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
     {
         $this->response->addHeader('Content-Type: application/json');
         try {
-            // Get JSON input
+            $this->validateCsrfToken();
             $input = json_decode(file_get_contents('php://input'), true);
             
-            if (!$input || !isset($input['cardToken'])) {
+            if (!$input || !isset($input['cardToken']) && !isset($input['cardId'])) {
                 throw new \Exception('Invalid request data - card token required');
             }
             
-            // Get order information
             $this->load->model('checkout/order');
             $this->load->model('checkout/cart');
             $order_id = $this->session->data['order_id'];
@@ -153,7 +159,6 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
             $total = $total * $order_info['currency_value'];
             $total = round(round((float)$total, 2) * 100, 0);
             
-            // Prepare 3DS session request data
             $sessionData = [
                 'cardToken' => $input['cardToken'],
                 'orderId' => $order_id,
@@ -169,6 +174,10 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
                 'merchantCode' => $this->getMerchantCode(),
                 'applicationName' => $this->getApplicationName()
             ];
+            
+            if (isset($input['cardId'])) {
+                $sessionData['cardId'] = $input['cardId'];
+            }
 
             $transactionHash = $this->generateHashData($sessionData['transactionId'], $sessionData['transactionDateTime']);
             $orderHash = $this->generateHashData($sessionData['orderId'], $sessionData['amount']);
@@ -177,11 +186,9 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
             $sessionData['orderHash'] = $orderHash;
             
             
-            // Make request to PayCell 3DS session endpoint
             $response = $this->make3DSSessionRequest($sessionData);
             
             if ($response && isset($response['responseHeader']['responseCode']) && $response['responseHeader']['responseCode'] == '0') {
-                // Extract 3DS session ID and redirect URL from response
                 $threeDSessionId = $response['threeDSessionId'] ?? null;
                 if ($this->config->get('payment_paycell_payment_gateway_sandbox_mode')) {
                     $threeDSecureUrl = 'https://omccstb.turkcell.com.tr/paymentmanagement/rest/threeDSecure';
@@ -195,7 +202,6 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
                     $compressedTransactionData = gzcompress($serializedTransactionData, 9);
                     $encodedTransactionData = $this->base64url_encode($compressedTransactionData);
 
-                    // Generate callback URL for 3DS return
                     $callbackUrl = $this->url->link('extension/paycell_payment_gateway/payment/paycell_payment_gateway.threeDSCallback', '&transaction=' . $encodedTransactionData, true);
                     
                     $this->response->setOutput(json_encode([
@@ -240,11 +246,9 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
             return;
         }
         
-        // Decode URLs
         $threeDSecureUrl = urldecode($threeDSecureUrl);
         $callbackUrl = urldecode($callbackUrl);
         
-        // Generate the 3DS redirect page HTML
         $html = $this->generate3DSRedirectPage($sessionId, $threeDSecureUrl, $callbackUrl);
         
         $this->response->setOutput($html);
@@ -449,7 +453,6 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
 
     private function make3DSSessionRequest($sessionData)
     {
-        // Prepare request data for 3DS session
         $requestData = [
             'merchantCode' => $sessionData['merchantCode'],
             'msisdn' => $sessionData['msisdn'],
@@ -543,11 +546,9 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
         foreach ($ipKeys as $key) {
             if (!empty($_SERVER[$key])) {
                 $ip = $_SERVER[$key];
-                // Handle comma-separated IPs (from proxies)
                 if (strpos($ip, ',') !== false) {
                     $ip = trim(explode(',', $ip)[0]);
                 }
-                // Validate IP address
                 if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                     return $ip;
                 }
@@ -573,10 +574,8 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
         $sandboxMode = $this->config->get('payment_paycell_payment_gateway_sandbox_mode');
         
         if ($sandboxMode) {
-            // Sandbox/Test environment
             return 'https://omccstb.turkcell.com.tr/paymentmanagement/rest/getCardTokenSecure';
         } else {
-            // Live/Production environment
             return 'https://epayment-gtm.turkcell.com.tr/paymentmanagement/rest/getCardTokenSecure';
         }
     }
@@ -638,6 +637,343 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
         ];
         
         return $this->makeRequest('/api/cards/bin-info', $requestData);
+    }
+
+    public function getCards()
+    {
+        $this->response->addHeader('Content-Type: application/json');
+        try {
+            $this->validateCsrfToken();
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $msisdn = null;
+            if (isset($this->session->data['order_id'])) {
+                $order_id = $this->session->data['order_id'];
+                $order_info = $this->getOrder($order_id);
+                $msisdn = $order_info['telephone'] ?? null;
+            }
+            
+            if (!$msisdn && isset($input['msisdn'])) {
+                $msisdn = $input['msisdn'];
+            }
+            
+            if (!$msisdn) {
+                throw new \Exception('MSISDN (phone number) is required');
+            }
+            
+            $transactionId = $input['transactionId'] ?? $this->generateTransactionId();
+            $transactionDateTime = $input['transactionDateTime'] ?? $this->generateTransactionDateTime();
+            
+            $sessionData = [
+                'transactionId' => $transactionId,
+                'transactionDateTime' => $transactionDateTime,
+                'clientIPAddress' => $this->getClientIPAddress(),
+                'msisdn' => $msisdn
+            ];
+            
+            if (isset($input['referenceNumber'])) {
+                $sessionData['referenceNumber'] = $input['referenceNumber'];
+            }
+            
+            if (isset($input['otpToken'])) {
+                $sessionData['otpToken'] = $input['otpToken'];
+            }
+            
+            $response = $this->makeGetCardsRequest($sessionData);
+            
+            if ($response && isset($response['responseHeader']['responseCode'])) {
+                $responseCode = $response['responseHeader']['responseCode'];
+                
+                if ($responseCode == '3110' || (isset($response['responseHeader']['responseDescription']) && 
+                    (stripos($response['responseHeader']['responseDescription'], 'otp') !== false || 
+                     stripos($response['responseHeader']['responseDescription'], 'verification') !== false))) {
+                    $this->response->setOutput(json_encode([
+                        'success' => false,
+                        'requiresOTP' => true,
+                        'message' => 'OTP verification required',
+                    ]), true);
+                    return;
+                }
+                
+                if ($responseCode == '0') {
+                    $cards = [];
+                    
+                    $cardsData = null;
+                    if (isset($response['paymentMethods']) && is_array($response['paymentMethods'])) {
+                        $cardsData = $response['paymentMethods'];
+                    } elseif (isset($response['cards']) && is_array($response['cards'])) {
+                        $cardsData = $response['cards'];
+                    } elseif (isset($response['cardList']) && is_array($response['cardList'])) {
+                        $cardsData = $response['cardList'];
+                    } elseif (isset($response['data']['paymentMethods']) && is_array($response['data']['paymentMethods'])) {
+                        $cardsData = $response['data']['paymentMethods'];
+                    } elseif (isset($response['data']['cards']) && is_array($response['data']['cards'])) {
+                        $cardsData = $response['data']['cards'];
+                    } elseif (isset($response['data']['cardList']) && is_array($response['data']['cardList'])) {
+                        $cardsData = $response['data']['cardList'];
+                    }
+                    
+                    if ($cardsData) {
+                        foreach ($cardsData as $card) {
+                            $cards[] = [
+                                'id' => $card['cardId'] ?? null,
+                                'name' => $card['alias'] ?? null,
+                                'masked_card_no' => $card['maskedCardNo'] ?? null,
+                                'cardBrand' => $card['cardBrand'] ?? null,
+                                'cardType' => $card['cardType'] ?? null,
+                                'isDefault' => $card['isDefault'] ?? null,
+                                'isExpired' => $card['isExpired'] ?? null,
+                                'showEulaId' => $card['showEulaId'] ?? null,
+                                'isThreeDValidated' => $card['isThreeDValidated'] ?? null,
+                                'isOTPValidated' => $card['isOTPValidated'] ?? null,
+                                'activationDate' => $card['activationDate'] ?? null,
+                            ];
+                        }
+                    }
+                    
+                    $this->response->setOutput(json_encode([
+                        'success' => true,
+                        'cards' => $cards,
+                    ]), true);
+                } else {
+                    $errorMessage = $response['responseHeader']['responseDescription'] ?? 
+                                   $response['errorMessage'] ?? 
+                                   $response['message'] ?? 
+                                   'Failed to get cards';
+                    throw new \Exception($errorMessage);
+                }
+            } else {
+                throw new \Exception('Invalid response from Paycell API');
+            }
+            
+        } catch (\Exception $exception) {
+            $errorResponse = $this->buildErrorResponse(-1, $exception->getMessage());
+            $this->response->setOutput(json_encode($errorResponse), true);
+        }
+    }
+
+    private function makeGetCardsRequest($sessionData)
+    {
+        $requestData = [
+            'requestHeader' => [
+                'transactionId' => $sessionData['transactionId'],
+                'transactionDateTime' => $sessionData['transactionDateTime'],
+                'clientIPAddress' => $sessionData['clientIPAddress'],
+                'applicationName' => $this->getApplicationName(),
+                'applicationPwd' => $this->getApplicationPassword()
+            ],
+            'msisdn' => $sessionData['msisdn'],
+            'merchantCode' => $this->getMerchantCode(),
+        ];
+        
+        if (isset($sessionData['referenceNumber'])) {
+            $requestData['referenceNumber'] = $sessionData['referenceNumber'];
+        }
+        
+        if (isset($sessionData['otpToken'])) {
+            $requestData['otpToken'] = $sessionData['otpToken'];
+        }
+        
+        return $this->makeRequest('/api/cards/payment-methods', $requestData);
+    }
+
+    private function generateTransactionId()
+    {
+        $timestamp = (string)(time() * 1000); 
+        $random = str_pad((string)rand(0, 9999999), 7, '0', STR_PAD_LEFT); 
+        return $timestamp . $random;
+    }
+
+    private function generateTransactionDateTime()
+    {
+        $now = new \DateTime();
+        $microseconds = (int)$now->format('u');
+        $milliseconds = (int)($microseconds / 1000);
+        return $now->format('YmdHis') . str_pad((string)$milliseconds, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Send OTP to customer's phone number
+     */
+    public function sendOTP()
+    {
+        $this->response->addHeader('Content-Type: application/json');
+        try {
+            $this->validateCsrfToken();
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            $msisdn = null;
+            if (isset($this->session->data['order_id'])) {
+                $order_id = $this->session->data['order_id'];
+                $order_info = $this->getOrder($order_id);
+                $msisdn = $order_info['telephone'] ?? null;
+            }
+            
+            if (!$msisdn && isset($input['msisdn'])) {
+                $msisdn = $input['msisdn'];
+            }
+            
+            if (!$msisdn) {
+                throw new \Exception('MSISDN (phone number) is required');
+            }
+            
+            $transactionId = $input['transactionId'] ?? $this->generateTransactionId();
+            $transactionDateTime = $input['transactionDateTime'] ?? $this->generateTransactionDateTime();
+            
+            $sessionData = [
+                'transactionId' => $transactionId,
+                'transactionDateTime' => $transactionDateTime,
+                'clientIPAddress' => $this->getClientIPAddress(),
+                'msisdn' => $msisdn
+            ];
+            
+            if (isset($input['referenceNumber'])) {
+                $sessionData['referenceNumber'] = $input['referenceNumber'];
+            }
+            
+            $response = $this->makeSendOTPRequest($sessionData);
+            
+            if ($response && isset($response['responseHeader']['responseCode']) && $response['responseHeader']['responseCode'] == '0') {
+                $this->response->setOutput(json_encode([
+                    'success' => true,
+                    'message' => 'OTP sent successfully',
+                    'otpReferenceId' => $response['otpReferenceId'] ?? $response['referenceId'] ?? null,
+                    'otpToken' => $response['otpToken'] ?? $response['token'] ?? null,
+                ]), true);
+            } else {
+                $errorMessage = $response['responseHeader']['responseDescription'] ?? 
+                               $response['errorMessage'] ?? 
+                               $response['message'] ?? 
+                               'Failed to send OTP';
+                throw new \Exception($errorMessage);
+            }
+            
+        } catch (\Exception $exception) {
+            $errorResponse = $this->buildErrorResponse(-1, $exception->getMessage());
+            $this->response->setOutput(json_encode($errorResponse), true);
+        }
+    }
+
+    /**
+     * Verify OTP code
+     */
+    public function verifyOTP()
+    {
+        $this->response->addHeader('Content-Type: application/json');
+        try {
+            $this->validateCsrfToken();
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($input['otpCode'])) {
+                throw new \Exception('OTP code is required');
+            }
+            
+            $msisdn = null;
+            if (isset($this->session->data['order_id'])) {
+                $order_id = $this->session->data['order_id'];
+                $order_info = $this->getOrder($order_id);
+                $msisdn = $order_info['telephone'] ?? null;
+            }
+            
+            if (!$msisdn && isset($input['msisdn'])) {
+                $msisdn = $input['msisdn'];
+            }
+            
+            if (!$msisdn) {
+                throw new \Exception('MSISDN (phone number) is required');
+            }
+            
+            $transactionId = $input['transactionId'] ?? $this->generateTransactionId();
+            $transactionDateTime = $input['transactionDateTime'] ?? $this->generateTransactionDateTime();
+            
+            $sessionData = [
+                'referenceNumber' => $input['referenceNumber'],
+                'transactionId' => $transactionId,
+                'transactionDateTime' => $transactionDateTime,
+                'clientIPAddress' => $this->getClientIPAddress(),
+                'msisdn' => $msisdn,
+                'otpCode' => $input['otpCode'],
+                'otpReferenceId' => $input['otpReferenceId'] ?? null,
+                'otpToken' => $input['otpToken'] ?? null,
+            ];
+            
+            $response = $this->makeVerifyOTPRequest($sessionData);
+            
+            if ($response && isset($response['responseHeader']['responseCode']) && $response['responseHeader']['responseCode'] == '0') {
+                $otpToken = $response['otpToken'] ?? $response['token'] ?? $response['otpTokenId'] ?? null;
+                
+                $this->response->setOutput(json_encode([
+                    'success' => true,
+                    'message' => 'OTP verified successfully',
+                    'otpToken' => $otpToken,
+                ]), true);
+            } else {
+                $errorMessage = $response['responseHeader']['responseDescription'] ?? 
+                               $response['errorMessage'] ?? 
+                               $response['message'] ?? 
+                               'Failed to verify OTP';
+                throw new \Exception($errorMessage);
+            }
+            
+        } catch (\Exception $exception) {
+            $errorResponse = $this->buildErrorResponse(-1, $exception->getMessage());
+            $this->response->setOutput(json_encode($errorResponse), true);
+        }
+    }
+
+    private function makeSendOTPRequest($sessionData)
+    {
+        $requestData = [
+            'requestHeader' => [
+                'transactionId' => $sessionData['transactionId'],
+                'transactionDateTime' => $sessionData['transactionDateTime'],
+                'clientIPAddress' => $sessionData['clientIPAddress'],
+                'applicationName' => $this->getApplicationName(),
+                'applicationPwd' => $this->getApplicationPassword()
+            ],
+            'extraParameters' => [
+                ['key' => 'VALIDATION_TYPE', 'value' => 'PM_LIST'],
+            ],
+            'referenceNumber' => $sessionData['referenceNumber'],
+            'msisdn' => $sessionData['msisdn'],
+            'merchantCode' => $this->getMerchantCode(),
+        ];
+        
+        if (isset($sessionData['referenceNumber'])) {
+            $requestData['referenceNumber'] = $sessionData['referenceNumber'];
+        }
+        
+        return $this->makeRequest('/api/otp/send', $requestData);
+    }
+
+    private function makeVerifyOTPRequest($sessionData)
+    {
+        $requestData = [
+            'requestHeader' => [
+                'transactionId' => $sessionData['transactionId'],
+                'transactionDateTime' => $sessionData['transactionDateTime'],
+                'clientIPAddress' => $sessionData['clientIPAddress'],
+                'applicationName' => $this->getApplicationName(),
+                'applicationPwd' => $this->getApplicationPassword()
+            ],
+            'extraParameters' => [
+                ['key' => 'VALIDATION_TYPE', 'value' => 'PM_LIST'],
+            ],
+            'referenceNumber' => $sessionData['referenceNumber'],
+            'msisdn' => $sessionData['msisdn'],
+            'otp' => $sessionData['otpCode'],
+            'token' => $sessionData['otpToken'],
+        ];
+        
+            if (isset($sessionData['otpReferenceId'])) {
+                $requestData['otpReferenceId'] = $sessionData['otpReferenceId'];
+            }
+            
+            if (isset($sessionData['otpToken'])) {
+                $requestData['otpToken'] = $sessionData['otpToken'];
+            }
+        
+        return $this->makeRequest('/api/otp/validate', $requestData);
     }
 
 

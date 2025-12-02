@@ -19,7 +19,7 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
 
     public function index()
     {
-        $this->language->load('extension/paycell_payment_gateway/payment/paycell_payment_gateway');
+        $this->load->language('extension/paycell_payment_gateway/payment/paycell_payment_gateway');
         $this->document->setTitle($this->language->get('heading_title'));
         $this->load->model('setting/setting');
 
@@ -28,6 +28,31 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
             $this->session->data['success'] = $this->language->get('text_success');
             $this->response->redirect($this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true));
         }
+
+        $data['heading_title'] = $this->language->get('heading_title');
+        $data['text_enabled'] = $this->language->get('text_enabled');
+        $data['text_disabled'] = $this->language->get('text_disabled');
+        $data['entry_status'] = $this->language->get('entry_status');
+        $data['entry_title'] = $this->language->get('entry_title');
+        $data['text_title'] = $this->language->get('text_title');
+        $data['text_status_help'] = $this->language->get('text_status_help');
+        $data['text_title_help'] = $this->language->get('text_title_help');
+        $data['entry_sandbox_mode'] = $this->language->get('entry_sandbox_mode');
+        $data['text_sandbox_mode_help'] = $this->language->get('text_sandbox_mode_help');
+        $data['entry_application_name'] = $this->language->get('entry_application_name');
+        $data['text_application_name_help'] = $this->language->get('text_application_name_help');
+        $data['entry_application_password'] = $this->language->get('entry_application_password');
+        $data['text_application_password_help'] = $this->language->get('text_application_password_help');
+        $data['entry_merchant_code'] = $this->language->get('entry_merchant_code');
+        $data['text_merchant_code_help'] = $this->language->get('text_merchant_code_help');
+        $data['entry_secure_code'] = $this->language->get('entry_secure_code');
+        $data['text_secure_code_help'] = $this->language->get('text_secure_code_help');
+        $data['entry_order_status'] = $this->language->get('entry_order_status');
+        $data['text_order_status_help'] = $this->language->get('text_order_status_help');
+        $data['entry_sort_order'] = $this->language->get('entry_sort_order');
+        $data['text_order_help'] = $this->language->get('text_order_help');
+        $data['button_save'] = $this->language->get('button_save');
+        $data['button_cancel'] = $this->language->get('button_cancel');
 
         foreach ($this->settings_fields as $field) {
             $field_name = $field['name'];

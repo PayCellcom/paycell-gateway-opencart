@@ -1,5 +1,4 @@
 <?php
-// Onsite form fields
 $_['text_card_holder_name'] = 'Card Holder Name';
 $_['text_card_number'] = 'Card Number';
 $_['text_expiry_date'] = 'Expiry Date';
@@ -9,3 +8,21 @@ $_['text_installment_single'] = 'installment';
 $_['text_installment_plural'] = 'installments';
 $_['text_pay_now'] = 'Pay Now';
 $_['text_payment_failed'] = 'Payment failed. Please try again.';
+$_['text_otp_required'] = 'You can use the credit cards that are saved in Paycell to pay for your order';
+$_['text_otp_message_full'] = 'To use your cards that are saved in Paycell you must validate your phone number via OTP';
+$_['text_send_otp'] = 'Send OTP Code';
+$_['text_enter_otp'] = 'Enter OTP Code';
+$_['text_otp_placeholder'] = 'Enter OTP code';
+$_['text_resend_otp'] = 'Resend OTP Code';
+$_['text_verify_otp'] = 'Verify OTP Code';
+$_['text_otp_verified_success'] = 'Phone number validated successfully!';
+$_['text_saved_cards'] = 'Saved Cards';
+$_['text_new_card'] = 'New Card';
+$_['text_sending_otp'] = 'Sending OTP...';
+$_['text_failed_send_otp'] = 'Failed to send OTP code. Please try again.';
+$_['text_verifying_otp'] = 'Validating...';
+$_['text_invalid_otp'] = 'Invalid OTP code. Please try again.';
+$_['text_failed_validate_otp'] = 'Failed to validate OTP. Please try again.';
+$_['text_no_cards'] = 'No saved cards found.';
+$_['text_validation_error'] = 'Please fill in all required fields correctly';
+$_['text_select_card_error'] = 'Please select a saved card';

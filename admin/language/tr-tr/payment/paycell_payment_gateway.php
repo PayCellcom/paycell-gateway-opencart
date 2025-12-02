@@ -21,7 +21,8 @@ $_['text_secure_code_help'] = 'Paycell tarafından sağlanan güvenlik kodu.';
 // Girdi
 $_['entry_status'] = 'Durum';
 $_['entry_title'] = 'Başlık';
-$_['entry_sandbox_mode'] = 'Sandbox Modu';
+$_['text_title'] = 'Paycell Ödeme Geçidi';
+$_['entry_sandbox_mode'] = 'Test Modu';
 $_['entry_application_name'] = 'Uygulama Adı';
 $_['entry_application_password'] = 'Uygulama Şifresi';
 $_['entry_merchant_code'] = 'Üye İşyeri Kodu';
@@ -35,5 +36,8 @@ $_['error_permission'] = 'Bu işlemi yapmak için yetkiniz yok!';
 
 $_['text_enabled'] = 'Etkin';
 $_['text_disabled'] = 'Devre Dışı';
+
+$_['button_save'] = 'Kaydet';
+$_['button_cancel'] = 'İptal';
 
 

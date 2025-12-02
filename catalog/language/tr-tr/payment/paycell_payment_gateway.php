@@ -1,6 +1,4 @@
 <?php
-
-// Ödeme formu alanları
 $_['text_card_holder_name'] = 'Kart Sahibi Adı';
 $_['text_card_number'] = 'Kart Numarası';
 $_['text_expiry_date'] = 'Son Kullanma Tarihi';
@@ -10,5 +8,22 @@ $_['text_installment_single'] = 'taksit';
 $_['text_installment_plural'] = 'taksit';
 $_['text_pay_now'] = 'Şimdi Öde';
 $_['text_payment_failed'] = 'Ödeme başarısız oldu. Lütfen tekrar deneyin.';
-
+$_['text_otp_required'] = 'Siparişinizi ödemek için Paycell\'de kayıtlı kredi kartlarınızı kullanabilirsiniz';
+$_['text_otp_message_full'] = 'Paycell\'de kayıtlı kartlarınızı kullanmak için telefon numaranızı OTP ile doğrulamanız gerekir';
+$_['text_send_otp'] = 'OTP Kodu Gönder';
+$_['text_enter_otp'] = 'OTP Kodunu Girin';
+$_['text_otp_placeholder'] = 'OTP kodunu girin';
+$_['text_resend_otp'] = 'OTP Kodunu Tekrar Gönder';
+$_['text_verify_otp'] = 'OTP Kodunu Doğrula';
+$_['text_otp_verified_success'] = 'Telefon numarası başarıyla doğrulandı!';
+$_['text_saved_cards'] = 'Kayıtlı Kartlar';
+$_['text_new_card'] = 'Yeni Kart';
+$_['text_sending_otp'] = 'OTP gönderiliyor...';
+$_['text_failed_send_otp'] = 'OTP kodu gönderilemedi. Lütfen tekrar deneyin.';
+$_['text_verifying_otp'] = 'Doğrulanıyor...';
+$_['text_invalid_otp'] = 'Geçersiz OTP kodu. Lütfen tekrar deneyin.';
+$_['text_failed_validate_otp'] = 'OTP doğrulanamadı. Lütfen tekrar deneyin.';
+$_['text_no_cards'] = 'Kayıtlı kart bulunamadı.';
+$_['text_validation_error'] = 'Lütfen tüm gerekli alanları doğru şekilde doldurun';
+$_['text_select_card_error'] = 'Lütfen bir kayıtlı kart seçin';
 

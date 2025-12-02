@@ -1,5 +1,6 @@
 <style>
-    .paycell-form {
+    .paycell-form,
+    .saved-cards-form {
         margin: 0 auto;
         padding: 20px;
         border: 1px solid #ddd;
@@ -7,11 +8,13 @@
         background: #fff;
     }
 
-    .paycell-form .form-group {
+    .paycell-form .form-group,
+    .saved-cards-form .form-group {
         margin-bottom: 15px;
     }
 
-    .paycell-form label {
+    .paycell-form label,
+    .saved-cards-form label {
         display: block;
         margin-bottom: 5px;
         font-weight: bold;
@@ -20,7 +23,10 @@
 
     .paycell-form input[type="text"],
     .paycell-form input[type="number"],
-    .paycell-form select {
+    .paycell-form select,
+    .saved-cards-form input[type="text"],
+    .saved-cards-form input[type="number"],
+    .saved-cards-form select {
         width: 100%;
         padding: 10px;
         border: 1px solid #ccc;
@@ -29,7 +35,8 @@
         box-sizing: border-box;
     }
 
-    .paycell-form select:disabled {
+    .paycell-form select:disabled,
+    .saved-cards-form select:disabled {
         background-color: #f5f5f5;
         color: #999;
         cursor: not-allowed;
@@ -98,6 +105,331 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    .saved-cards-section {
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .saved-cards-list {
+        display: none;
+    }
+
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    
+    @media (max-width: 600px) {
+        .cards-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .saved-card-item {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: linear-gradient(to right top, #033e8c, #4cc8d9);
+        color: white;
+        position: relative;
+        overflow: hidden;
+        aspect-ratio: 1.986;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .saved-card-item:hover {
+        transform: translateY(-2px);
+    }
+
+    .saved-card-item.selected {
+        border: 2px solid #0073aa;
+        box-shadow: 0 4px 12px rgba(0, 115, 170, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .saved-card-item .card-checkmark {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #0073aa;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .saved-card-item .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+    }
+
+    .saved-card-item .card-brand {
+        font-size: 12px;
+        text-transform: uppercase;
+        opacity: 0.8;
+    }
+
+    .saved-card-item .card-type {
+        font-size: 12px;
+        text-transform: uppercase;
+        opacity: 0.8;
+        padding-top: 15px;
+    }
+
+    .saved-card-item .card-number {
+        font-size: 18px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        color: white;
+        display: block;
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .otp-section {
+        display: none;
+        margin-bottom: 20px;
+        border: 1px solid #b8daff;
+        border-radius: 4px;
+        background-color: #cce5ff;
+    }
+
+    .otp-section.active {
+        display: block;
+    }
+
+    .otp-toggle-button {
+        width: 100%;
+        padding: 12px 15px;
+        border: none;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 500;
+        color: #004085;
+    }
+
+    .otp-toggle-icon {
+        font-size: 18px;
+        transition: transform 0.3s ease;
+    }
+
+    .otp-expanded-content {
+        display: none;
+        padding: 0 15px 15px 15px;
+        font-size: 14px;
+        color: #004085;
+        border-top: 1px solid #b8daff;
+        padding-top: 15px;
+    }
+
+    .otp-expanded-content.active {
+        display: block;
+    }
+
+    .otp-send-section {
+        margin-bottom: 10px;
+    }
+
+    .otp-verify-section {
+        display: none;
+    }
+
+    .otp-verify-section.active {
+        display: block;
+    }
+
+    .otp-code-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+
+    .otp-code-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+    }
+
+    .otp-message {
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+
+    .otp-success-message {
+        display: none;
+        color: #28a745;
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 10px;
+    }
+
+    .otp-success-message.active {
+        display: block;
+    }
+
+    .btn-otp-send {
+        padding: 10px 20px;
+        background-color: #0073aa;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        margin-bottom: 10px;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+
+    .btn-otp-send:hover {
+        background-color: #005a87;
+    }
+
+    .btn-otp-send:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-otp-verify {
+        padding: 10px 20px;
+        background-color: #0073aa;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        width: 100%;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+
+    .btn-otp-verify:hover {
+        background-color: #005a87;
+    }
+
+    .btn-otp-verify:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-otp-resend {
+        padding: 8px 16px;
+        background-color: transparent;
+        color: #0073aa;
+        border: 1px solid #0073aa;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        width: 100%;
+        margin-bottom: 10px;
+        opacity: 1;
+        transition: opacity 0.3s;
+    }
+
+    .btn-otp-resend:hover {
+        background-color: #f0f7ff;
+    }
+
+    .btn-otp-resend:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-load-cards {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+    .btn-load-cards:hover {
+        background: #218838;
+    }
+
+    .btn-load-cards:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .payment-options {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .payment-option-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .payment-option-tab {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        background: #f9f9f9;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .payment-option-tab.active {
+        border-color: #007bff;
+        background: #e7f3ff;
+        color: #007bff;
+        font-weight: bold;
+    }
+
+    .payment-option-content {
+        display: none;
+    }
+
+    .payment-option-content.active {
+        display: block;
+    }
 </style>
 
 <div id="paycell_payment_gateway_container">
@@ -105,10 +437,67 @@
         <div class="alert alert-danger">{{ paycell_error }}</div>
     {% endif %}
 
-    <form id="paycell-payment-form" class="paycell-form">
+    <div class="payment-options">
         <div class="form-group" style="text-align:center; margin-bottom: 20px;">
             <img src="extension/paycell_payment_gateway/catalog/view/image/payment/paycell-logo.png" alt="Paycell" style="height:28px;" />
         </div>
+        
+        <div class="otp-section" id="otp-section" style="display: none;">
+            <button type="button" id="btn-toggle-otp" class="otp-toggle-button">
+                <span>{{ text_otp_required|default('You can use the credit cards that are saved in Paycell to pay for your order') }}</span>
+                <span id="otp-toggle-icon" class="otp-toggle-icon">▼</span>
+            </button>
+            <div id="otp-expanded-content" class="otp-expanded-content">
+                <p style="margin: 0 0 15px 0;">{{ text_otp_message_full|default('To use your cards that are saved in Paycell you must validate your phone number via OTP') }}</p>
+                
+                <div id="otp-send-section" class="otp-send-section">
+                    <button type="button" id="btn-send-otp" class="btn-otp-send">{{ text_send_otp|default('Send OTP Code') }}</button>
+                </div>
+                
+                <div id="otp-verify-section" class="otp-verify-section">
+                    <label for="otp-code" class="otp-code-label">{{ text_enter_otp|default('Enter OTP Code') }}</label>
+                    <input type="text" id="otp-code" class="otp-code-input" placeholder="{{ text_otp_placeholder|default('Enter OTP code') }}" maxlength="6" pattern="[0-9]*">
+                    <div id="otp-message" class="otp-message"></div>
+                    <button type="button" id="btn-resend-otp" class="btn-otp-resend">{{ text_resend_otp|default('Resend OTP Code') }}</button>
+                    <button type="button" id="btn-verify-otp" class="btn-otp-verify">{{ text_verify_otp|default('Verify OTP Code') }}</button>
+                </div>
+                
+                <div id="otp-success-message" class="otp-success-message">
+                    {{ text_otp_verified_success|default('Phone number validated successfully!') }}
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-option-tabs" id="payment-option-tabs" style="display: none;">
+            <div class="payment-option-tab" data-tab="saved-cards">
+                {{ text_saved_cards|default('Saved Cards') }}
+            </div>
+            <div class="payment-option-tab active" data-tab="new-card">
+                {{ text_new_card|default('New Card') }}
+            </div>
+        </div>
+
+        <div class="payment-option-content" id="saved-cards-content">
+            <div class="saved-cards-section">
+                <div id="cards-loading" class="spinner" style="display: block; margin: 10px auto;"></div>
+                <div id="cards-error" class="error" style="display: none; margin-top: 10px;"></div>
+
+                <div class="saved-cards-list" id="saved-cards-list">
+                    <div id="cards-container" class="cards-container"></div>
+                </div>
+            </div>
+            <div class="saved-cards-form" style="margin-top: 10px;">
+                <div class="form-group">
+                    <label for="installment_saved">{{ text_installment }}</label>
+                    <select id="installment_saved" name="installment_saved" disabled>
+                        <option value="1">1 {{ text_installment_single }}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-option-content active" id="new-card-content">
+            <form id="paycell-payment-form" class="paycell-form">
         <div class="form-group">
             <label for="card_holder_name">{{ text_card_holder_name }} *</label>
             <input type="text" id="card_holder_name" name="card_holder_name" required>
@@ -139,67 +528,508 @@
             </select>
         </div>
 
-        <button type="submit" id="paycell-submit-btn">
-            <span id="btn-text">{{ text_pay_now }}</span>
-            <div id="btn-loading" class="spinner" style="display: none;"></div>
-        </button>
-
         <div id="paycell-errors" class="error" style="display: none;"></div>
-    </form>
+            </form>
+        </div>
+        
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <button type="button" id="paycell-submit-btn" class="paycell-form button" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background 0.3s;">
+                <span id="btn-text">{{ text_pay_now }}</span>
+                <div id="btn-loading" class="spinner" style="display: none;"></div>
+            </button>
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
+    window.paycell_payment_gateway_csrf_token = '{{ csrf_token }}';
     $(document).ready(function() {
+        $('.payment-option-tab').on('click', function() {
+            const tab = $(this).data('tab');
+            $('.payment-option-tab').removeClass('active');
+            $(this).addClass('active');
+            $('.payment-option-content').removeClass('active');
+            $('#' + tab + '-content').addClass('active');
+        });
+
+        let otpToken = null;
+        let otpReferenceId = null;
+        let otpReferenceNumber = null;
+        let selectedCard = null;
+        let savedCards = [];
+        let needsOTP = false;
+        let otpSent = false;
+        let otpSuccess = false;
+        let otpRetryCount = 3;
+        let isInitialLoad = true;
+        let loadCardsTimeout = null;
+        let lastPhoneNumber = '';
+
+        $('#btn-toggle-otp').on('click', function() {
+            const $content = $('#otp-expanded-content');
+            const $icon = $('#otp-toggle-icon');
+            if ($content.hasClass('active')) {
+                $content.slideUp().removeClass('active');
+                $icon.css('transform', 'rotate(0deg)');
+            } else {
+                $content.slideDown().addClass('active');
+                $icon.css('transform', 'rotate(180deg)');
+            }
+        });
+
+        $('#btn-send-otp').on('click', function() {
+            sendOTP();
+        });
+
+        $('#btn-verify-otp').on('click', function() {
+            verifyOTP();
+        });
+
+        $('#btn-resend-otp').on('click', function() {
+            setOtpSent(false);
+            setOtpCode('');
+            setOtpError('');
+            setOtpRetryCount(3);
+            sendOTP();
+        });
+
+        $('#otp-code').on('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            setOtpError('');
+        }).on('keydown', function(e) {
+            if (e.key === 'Enter' && $(this).val() && !$('#btn-verify-otp').prop('disabled')) {
+                verifyOTP();
+            }
+        });
+
+        function setOtpSent(value) {
+            otpSent = value;
+            if (value) {
+                $('#otp-send-section').hide();
+                $('#otp-verify-section').addClass('active');
+            } else {
+                $('#otp-send-section').show();
+                $('#otp-verify-section').removeClass('active');
+            }
+        }
+
+        function setOtpCode(value) {
+            $('#otp-code').val(value);
+        }
+
+        function setOtpError(message) {
+            const $message = $('#otp-message');
+            if (message) {
+                $message.text(message).css('color', '#dc3545').show();
+            } else {
+                $message.hide();
+            }
+        }
+
+        function setOtpRetryCount(count) {
+            otpRetryCount = count;
+            if (count <= 0) {
+                $('#btn-resend-otp').show();
+                $('#btn-verify-otp').hide();
+            } else {
+                $('#btn-resend-otp').hide();
+                $('#btn-verify-otp').show();
+            }
+        }
+
+        function setOtpSuccess(value) {
+            otpSuccess = value;
+            if (value) {
+                $('#otp-verify-section').removeClass('active');
+                $('#otp-success-message').addClass('active');
+            } else {
+                $('#otp-success-message').removeClass('active');
+            }
+        }
+
+        function autoLoadCards() {
+            let phoneNumber = '';
+            
+            const $phoneInput = $('input[name="telephone"], input[name="phone"], input[id*="phone"], input[id*="telephone"]');
+            if ($phoneInput.length > 0) {
+                phoneNumber = $phoneInput.val() || '';
+            }
+            
+            if (phoneNumber && phoneNumber !== lastPhoneNumber) {
+                lastPhoneNumber = phoneNumber;
+                
+                if (loadCardsTimeout) {
+                    clearTimeout(loadCardsTimeout);
+                }
+                
+                loadCardsTimeout = setTimeout(() => {
+                    loadSavedCards(true);
+                }, 500);
+            } else if (!phoneNumber) {
+                if (loadCardsTimeout) {
+                    clearTimeout(loadCardsTimeout);
+                }
+                loadCardsTimeout = setTimeout(() => {
+                    loadSavedCards(true);
+                }, 500);
+            }
+        }
+
+        $(document).on('change input', 'input[name="telephone"], input[name="phone"], input[id*="phone"], input[id*="telephone"]', function() {
+            autoLoadCards();
+        });
+
+        setTimeout(() => {
+            autoLoadCards();
+        }, 100);
+
+        function loadSavedCards(isAutoLoad = false, referenceNumber = null) {
+            const $loading = $('#cards-loading');
+            const $error = $('#cards-error');
+            const $cardsList = $('#saved-cards-list');
+            const $otpSection = $('#otp-section');
+
+            $loading.show();
+            $error.hide();
+            $cardsList.hide();
+
+            const transactionId = generateTransactionId();
+            const transactionDateTime = generateTransactionTime();
+            
+            const requestData = {
+                transactionId: transactionId,
+                transactionDateTime: transactionDateTime
+            };
+            
+            if (referenceNumber) {
+                requestData.referenceNumber = referenceNumber;
+            } else if (otpToken) {
+                requestData.otpToken = otpToken;
+            }
+
+            fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.getCards', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                $loading.hide();
+
+                if (data.success && data.cards) {
+                    savedCards = data.cards || [];
+                    needsOTP = false;
+                    
+                    if (savedCards.length > 0) {
+                        $('#payment-option-tabs').show();
+                        displayCards(savedCards);
+                        
+                        if (isInitialLoad) {
+                            let defaultCard = savedCards.find(card => card.isDefault);
+                            if (!defaultCard) {
+                                defaultCard = savedCards[0];
+                            }
+                            if (defaultCard) {
+                                handleCardSelection(defaultCard.cardId || savedCards.indexOf(defaultCard));
+                                $('.payment-option-tab[data-tab="saved-cards"]').click();
+                            }
+                            isInitialLoad = false;
+                        }
+                    } else {
+                        $('#payment-option-tabs').hide();
+                        $('.payment-option-content').removeClass('active');
+                        $('#new-card-content').addClass('active');
+                    }
+                    
+                    $otpSection.hide();
+                } else if (data.requiresOTP || data.responseCode == '3110') {
+                    needsOTP = true;
+                    $otpSection.show();
+                    $('#otp-expanded-content').removeClass('active').hide();
+                    $('#otp-toggle-icon').css('transform', 'rotate(0deg)');
+                } else {
+                    if (data.errors?.errorDescription || data.message) {
+                        $error.text(data.errors?.errorDescription || data.message || 'Failed to load cards').show();
+                    }
+                }
+            })
+            .catch(error => {
+                $loading.hide();
+                if (lastPhoneNumber) {
+                    $error.text('Network error: ' + error.message).show();
+                }
+                console.error('Load cards error:', error);
+            });
+        }
+
+        function sendOTP() {
+            const $btn = $('#btn-send-otp');
+            setOtpError('');
+            setOtpSuccess(false);
+
+            $btn.prop('disabled', true).text({{ text_sending_otp|default("Sending OTP...")|json_encode }}).css('opacity', '0.6');
+
+            const numberTimestamp = Date.now().toString();
+            const array = new Uint32Array(1);
+            crypto.getRandomValues(array);
+            const numberRandom = (array[0] % 1e7).toString().padStart(7, '0');
+            const referenceNumber = numberTimestamp + numberRandom;
+
+            const transactionId = generateTransactionId();
+            const transactionDateTime = generateTransactionTime();
+
+            fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.sendOTP', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
+                },
+                body: JSON.stringify({
+                    transactionId: transactionId,
+                    transactionDateTime: transactionDateTime,
+                    referenceNumber: referenceNumber
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                $btn.prop('disabled', false).text({{ text_send_otp|default("Send OTP Code")|json_encode }}).css('opacity', '1');
+
+                if (data.success) {
+                    otpReferenceId = data.otpReferenceId || referenceNumber;
+                    otpReferenceNumber = referenceNumber; // Store the referenceNumber used in sendOTP
+                    otpToken = data.otpToken || null; // Some APIs return token on send
+                    setOtpSent(true);
+                    setOtpRetryCount(3);
+                    $('#otp-code').focus();
+                } else {
+                    setOtpError(data.errors?.errorDescription || data.message || {{ text_failed_send_otp|default("Failed to send OTP code. Please try again.")|json_encode }});
+                }
+            })
+            .catch(error => {
+                $btn.prop('disabled', false).text({{ text_send_otp|default("Send OTP Code")|json_encode }}).css('opacity', '1');
+                setOtpError(error.message || {{ text_failed_send_otp|default("Failed to send OTP code. Please try again.")|json_encode }});
+                console.error('Send OTP error:', error);
+            });
+        }
+
+        function verifyOTP() {
+            const $btn = $('#btn-verify-otp');
+            const $otpInput = $('#otp-code');
+            const otpCode = $otpInput.val().trim();
+
+            if (!otpCode || otpCode.length === 0) {
+                setOtpError({{ text_otp_required|default("Please enter the OTP code.")|json_encode }});
+                return;
+            }
+
+            $btn.prop('disabled', true).text({{ text_verifying_otp|default("Validating...")|json_encode }}).css('opacity', '0.6');
+            setOtpError('');
+
+            const transactionId = generateTransactionId();
+            const transactionDateTime = generateTransactionTime();
+
+            fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.verifyOTP', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
+                },
+                body: JSON.stringify({
+                    transactionId: transactionId,
+                    transactionDateTime: transactionDateTime,
+                    otpCode: otpCode,
+                    otpToken: otpToken,
+                    referenceNumber: otpReferenceNumber || otpReferenceId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.success) {
+                    if (data.otpToken) {
+                        otpToken = data.otpToken;
+                    }
+                    otpSuccess = true;
+                    needsOTP = false;
+                    
+                    setTimeout(() => {
+                        if (otpReferenceNumber) {
+                            loadSavedCards(true, otpReferenceNumber);
+                        } else if (otpToken) {
+                            loadSavedCards(true);
+                        } else {
+                            console.error('No referenceNumber or otpToken available after OTP verification');
+                            setOtpError('Failed to load cards after OTP verification');
+                        }
+                    }, 500);
+                } else {
+                    $btn.prop('disabled', false).text({{ text_verify_otp|default("Verify OTP Code")|json_encode }}).css('opacity', '1');
+                    const retryCount = data.retryCount !== undefined ? data.retryCount : (otpRetryCount - 1);
+                    setOtpRetryCount(retryCount);
+                    setOtpError(data.errors?.errorDescription || data.message || {{ text_invalid_otp|default("Invalid OTP code. Please try again.")|json_encode }});
+                }
+            })
+            .catch(error => {
+                $btn.prop('disabled', false).text('{{ text_verify_otp|default("Verify OTP Code") }}').css('opacity', '1');
+                setOtpError(error.message || {{ text_failed_validate_otp|default("Failed to validate OTP. Please try again.")|json_encode }});
+                console.error('Verify OTP error:', error);
+            });
+        }
+
+        function displayCards(cards) {
+            const $container = $('#cards-container');
+            const $cardsList = $('#saved-cards-list');
+
+            $container.empty();
+            savedCards = cards || [];
+
+            if (!cards || cards.length === 0) {
+                $container.html('<p style="color: #666; font-size: 14px;">{{ text_no_cards|default("No saved cards found.") }}</p>');
+                $cardsList.show();
+                return;
+            }
+
+            cards.forEach((card, index) => {
+                const cardId = card.cardId || card.id || index;
+                const cardNumber = card.masked_card_no || card.cardNumber || card.maskedCardNumber || '•••• •••• •••• ••••';
+                const cardBrand = card.cardBrand || 'Credit Card';
+                const cardType = card.cardType || 'Card';
+                const isDefault = card.isDefault || false;
+                const isSelected = (selectedCard && (selectedCard.cardId || selectedCard.id) == cardId) || (isDefault && index === 0);
+
+                const cardHtml = `
+                    <div class="saved-card-item ${isSelected ? 'selected' : ''}" data-card-id="${String(cardId)}" ${isDefault ? 'data-default="true"' : ''}>
+                        ${isSelected ? '<div class="card-checkmark">✓</div>' : ''}
+                        <div class="card-header">
+                            <div class="card-brand">${cardBrand}</div>
+                            <div class="card-type">${cardType}</div>
+                        </div>
+                        <div class="card-number">${cardNumber}</div>
+                    </div>
+                `;
+                $container.append(cardHtml);
+            });
+
+            $('.saved-card-item').off('click').on('click', function() {
+                handleCardSelection($(this).data('card-id'));
+            });
+
+            const $defaultCard = $('.saved-card-item[data-default="true"]');
+            if ($defaultCard.length > 0) {
+                $defaultCard.click();
+            } else if ($('.saved-card-item').length > 0) {
+                $('.saved-card-item').first().click();
+            }
+
+            $cardsList.show();
+        }
+
+        function handleCardSelection(cardId) {
+            $('.saved-card-item').removeClass('selected');
+            $('.saved-card-item .card-checkmark').remove();
+            
+            const $selectedItem = $(`.saved-card-item[data-card-id="${cardId}"]`);
+            $selectedItem.addClass('selected');
+            $selectedItem.prepend('<div class="card-checkmark">✓</div>');
+            
+            selectedCard = savedCards.find(card => {
+                const id = card.cardId || card.id || savedCards.indexOf(card);
+                return id == cardId;
+            });
+            
+            if (selectedCard) {
+                $('#paycell-payment-form').data('selectedCardId', cardId);
+                $('#paycell-payment-form').data('selectedCard', selectedCard);
+
+                const cardType = (selectedCard.cardType || '').toString().toLowerCase();
+                if (cardType === 'credit') {
+                    enableSavedInstallmentOptions();
+                } else {
+                    disableSavedInstallmentOptions();
+                }
+            }
+        }
+
+        $(document).on('change', 'input[name="telephone"], input[name="phone"]', function() {
+            const newPhone = $(this).val();
+            if (newPhone !== lastPhoneNumber) {
+                otpToken = null;
+                otpReferenceId = null;
+                otpReferenceNumber = null;
+                otpSent = false;
+                otpSuccess = false;
+                needsOTP = false;
+                savedCards = [];
+                setOtpSent(false);
+                setOtpCode('');
+                setOtpError('');
+                $('#otp-success-message').removeClass('active');
+                $('#otp-section').hide();
+                $('#saved-cards-list').hide();
+                lastPhoneNumber = newPhone;
+            }
+        });
+        
         const $btn = $('#paycell-submit-btn');
         const $btnText = $('#btn-text');
         const $btnLoading = $('#btn-loading');
         const $errors = $('#paycell-errors');
+        
         function showError(message) {
-                $errors.text(message).show();
-                $btn.prop('disabled', false);
-                $btnText.show();
-                $btnLoading.hide();
-            }
-        // Format expiry date input (MM/YY)
+            $errors.text(message).show();
+            $btn.prop('disabled', false);
+            $btnText.show();
+            $btnLoading.hide();
+        }
         $('#expiry_date').on('input', function() {
-            let value = this.value.replace(/\D/g, ''); // Remove non-digits
+            let value = this.value.replace(/\D/g, '');
             if (value.length >= 2) {
                 value = value.substring(0, 2) + '/' + value.substring(2, 4);
             }
             this.value = value;
         });
 
-        // Format card number
         $('#card_number').on('input', function() {
             let value = this.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
             let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
             this.value = formattedValue;
             
-            // Disable installment if less than 6 digits
             if (value.length < 6) {
                 disableInstallmentOptions();
             } else {
-                // Check BIN when we have at least 6 digits
                 const binNumber = value.substring(0, 6);
                 checkBinInfo(binNumber);
             }
         });
 
-        // Handle form submission
-        $('#paycell-payment-form').on('submit', function(e) {
+        $('#paycell-submit-btn').on('click', function(e) {
             e.preventDefault();
             
-            const $form = $(this);
+            const $form = $('#paycell-payment-form');
+            const $errors = $('#paycell-errors');
 
-            // Clear previous errors
             $errors.hide().text('');
 
-            // Show loading state
+            const selectedCardId = $form.data('selectedCardId');
+            const selectedCardData = $form.data('selectedCard');
+            const isUsingSavedCard = $('.payment-option-tab.active').data('tab') === 'saved-cards' && selectedCardId;
+
             $btn.prop('disabled', true);
             $btnText.hide();
             $btnLoading.show();
 
-            // Get form data
+            if (isUsingSavedCard && selectedCardData) {
+                const transactionId = generateTransactionId();
+                const transactionNumber = generateTransactionNumber();
+                const transactionTime = generateTransactionTime();
+                
+                generate3DSSession(null, transactionId, transactionTime, transactionNumber, selectedCardId);
+                return;
+            }
+
             const paymentData = {
                 card_number: $('#card_number').val().replace(/\s/g, ''),
                 card_expiry: $('#expiry_date').val(),
@@ -208,18 +1038,20 @@
                 installment: $('#installment').val()
             };
 
-            // Validate form data
-            if (!validateFormData(paymentData)) {
-                showError('{{ text_validation_error|default("Please fill in all required fields correctly") }}');
+            if (!isUsingSavedCard && !validateFormData(paymentData)) {
+                showError({{ text_validation_error|default("Please fill in all required fields correctly")|json_encode }});
+                return;
+            }
+            
+            if (isUsingSavedCard && !selectedCardId) {
+                showError({{ text_select_card_error|default("Please select a saved card")|json_encode }});
                 return;
             }
 
-            // Generate transaction ID and timestamp
             const transactionId = generateTransactionId();
             const transactionNumber = generateTransactionNumber();
             const transactionTime = generateTransactionTime();
 
-            // Prepare transaction data for backend
             const transactionData = {
                 transactionId: transactionId,
                 transactionDateTime: transactionTime,
@@ -230,11 +1062,11 @@
                 ccAuthor: paymentData.card_owner
             };
 
-            // First, get hash data from backend
             fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.getHashData', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
                 },
                 body: JSON.stringify({
                     transaction_data: transactionData,
@@ -248,7 +1080,6 @@
             })
             .then(hashResponse => {
                 if (hashResponse.success && hashResponse.hashData) {
-                    // Now make request to PayCell API with backend-generated hash
                     const requestData = {
                         header: {
                             applicationName: hashResponse.applicationName,
@@ -263,7 +1094,6 @@
                         hashData: hashResponse.hashData
                     };
 
-                    // Make direct request to PayCell API
                     return fetch('{{ card_token_url }}', {
                         method: 'POST',
                         headers: {
@@ -283,29 +1113,31 @@
             })
             .then(data => {
                 if (data.success || data.cardToken) {
-                    // Card token received successfully, now generate 3DS session
                     generate3DSSession(data.cardToken || data.token, transactionId, transactionTime, transactionNumber);
                 } else {
-                    showError(data.errorMessage || data.message || '{{ text_payment_failed }}');
+                    showError(data.errorMessage || data.message || {{ text_payment_failed|json_encode }});
                 }
             })
             .catch(error => {
                 console.error('Payment error:', error);
-                showError(error.message || '{{ text_payment_failed }}');
+                showError(error.message || {{ text_payment_failed|json_encode }});
             });
         });
 
-        // Generate transaction ID
         function generateTransactionId() {
-            const timestamp = Date.now().toString(); // 13 digits
-            const random = Math.floor(Math.random() * 1e7).toString().padStart(7, '0'); // 7 digits
-            const transactionId = timestamp + random; // 13 + 7 = 20 digits
+            const timestamp = Date.now().toString();
+            const array = new Uint32Array(1);
+            crypto.getRandomValues(array);
+            const random = (array[0] % 1e7).toString().padStart(7, '0');
+            const transactionId = timestamp + random;
             return transactionId;
         }
 
         function generateTransactionNumber() {
             const numberTimestamp = Date.now().toString();
-            const numberRandom = Math.floor(Math.random() * 1e7).toString().padStart(7, '0');
+            const array = new Uint32Array(1);
+            crypto.getRandomValues(array);
+            const numberRandom = (array[0] % 1e7).toString().padStart(7, '0');
             const transactionNumber = numberTimestamp + numberRandom;
             return transactionNumber;
         }
@@ -322,31 +1154,23 @@
             return formatted;
         }
 
-
-        // Validate form data
         function validateFormData(data) {
-            // Check if all required fields are filled
             if (!data.card_number || !data.card_cvc || !data.card_owner || !data.card_expiry) {
                 return false;
             }
 
-            // Validate card number (basic Luhn algorithm check)
             if (!validateCardNumber(data.card_number)) {
-                //return false;
             }
 
-            // Validate CVV
             if (!/^\d{3,4}$/.test(data.card_cvc)) {
                 return false;
             }
 
-            // Validate expiry date (MM/YY format)
             const currentDate = new Date();
-            const currentYear = currentDate.getFullYear() % 100; // Get last 2 digits of year
+            const currentYear = currentDate.getFullYear() % 100;
             const currentMonth = currentDate.getMonth() + 1;
             const [expiryMonth, expiryYear] = data.card_expiry.split('/');
             
-            // Convert 2-digit year to 4-digit year
             const fullExpiryYear = parseInt(expiryYear) + 2000;
             const fullCurrentYear = currentDate.getFullYear();
             
@@ -358,7 +1182,6 @@
             return true;
         }
 
-        // Validate card number using Luhn algorithm
         function validateCardNumber(cardNumber) {
             const cleaned = cardNumber.replace(/\s/g, '');
             if (!/^\d{13,19}$/.test(cleaned)) {
@@ -385,46 +1208,49 @@
             return sum % 10 === 0;
         }
 
-        // Generate 3DS session after getting card token
-        function generate3DSSession(cardToken, transactionId, transactionTime, transactionNumber) {
+        function generate3DSSession(cardToken, transactionId, transactionTime, transactionNumber, cardId = null) {
             const $btn = $('#paycell-submit-btn');
             const $btnText = $('#btn-text');
             const $btnLoading = $('#btn-loading');
             const $errors = $('#paycell-errors');
 
-            // Show loading state for 3DS session
             $btn.prop('disabled', true);
             $btnText.hide();
             $btnLoading.show();
 
-            // Prepare order data for 3DS session
+            const isUsingSavedCard = !!cardId;
+            const installmentValue = isUsingSavedCard
+                ? ($('#installment_saved').val() || '1')
+                : ($('#installment').val() || '1');
+
             const orderData = {
                 cardToken: cardToken,
-                installment: $('#installment').val() || '1',
+                installment: installmentValue,
                 transactionId: transactionId,
                 transactionDateTime: transactionTime,
                 transactionNumber: transactionNumber
             };
+            
+            if (cardId) {
+                orderData.cardId = cardId;
+            }
 
-            // Request 3DS session from backend
             fetch('index.php?route=extension/paycell_payment_gateway/payment/paycell_payment_gateway.generate3DSSession', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
                 },
                 body: JSON.stringify(orderData)
             })
             .then(response => {
-                console.log(response);
                 if (!response.ok) {
                     throw new Error('Failed to generate 3DS session');
                 }
                 return response.json();
             })
             .then(sessionResponse => {
-                console.log(sessionResponse);
                 if (sessionResponse.success && sessionResponse.sessionData) {
-                    // 3DS session generated successfully
                     handle3DSSession(sessionResponse.sessionData);
                 } else {
                     showError(sessionResponse.errorMessage || 'Failed to generate 3DS session');
@@ -436,66 +1262,52 @@
             });
         }
 
-        // Handle 3DS session response
         function handle3DSSession(sessionData) {
-            console.log(sessionData);
             const $btn = $('#paycell-submit-btn');
             const $btnText = $('#btn-text');
             const $btnLoading = $('#btn-loading');
             const $errors = $('#paycell-errors');
 
-            // Hide loading state
             $btn.prop('disabled', false);
             $btnText.show();
             $btnLoading.hide();
 
             if (sessionData.redirectUrl) {
-                // Redirect to 3DS authentication page
                 window.location.href = sessionData.redirectUrl;
             } else if (sessionData.threeDSessionId && sessionData.threeDSecureUrl) {
-                // Create and submit 3DS form directly
                 createAndSubmit3DSForm(sessionData);
             } else if (sessionData.success) {
-                // Payment completed successfully
                 window.location.href = '{{ checkout_success_url|default("index.php?route=checkout/success") }}';
             } else {
                 showError(sessionData.errorMessage || '3DS authentication failed');
             }
         }
 
-        // Create and submit 3DS form directly
         function createAndSubmit3DSForm(sessionData) {
-            // Create a form element
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = sessionData.threeDSecureUrl;
             form.style.display = 'none';
 
-            // Add threeDSessionId field
             const sessionIdInput = document.createElement('input');
             sessionIdInput.type = 'hidden';
             sessionIdInput.name = 'threeDSessionId';
             sessionIdInput.value = sessionData.threeDSessionId;
             form.appendChild(sessionIdInput);
 
-            // Add callback URL field
             const callbackInput = document.createElement('input');
             callbackInput.type = 'hidden';
             callbackInput.name = 'callbackurl';
             callbackInput.value = sessionData.callbackUrl;
             form.appendChild(callbackInput);
 
-            // Add form to page and submit
             document.body.appendChild(form);
             form.submit();
         }
 
-        // BIN check function
         function checkBinInfo(binNumber) {
-            // Debounce the BIN check to avoid too many requests
             clearTimeout(window.binCheckTimeout);
             window.binCheckTimeout = setTimeout(() => {
-                // Generate transaction data on client side
                 const transactionId = generateTransactionId();
                 const transactionDateTime = generateTransactionTime();
                 
@@ -503,6 +1315,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': window.paycell_payment_gateway_csrf_token
                     },
                     body: JSON.stringify({
                         binNumber: binNumber,
@@ -520,20 +1333,15 @@
                     if (data.success) {
                         handleBinInfoResponse(data);
                     } else {
-                        console.log('BIN check failed:', data.errorMessage || 'Unknown error');
                     }
                 })
                 .catch(error => {
                     console.log('BIN check error:', error.message);
                 });
-            }, 500); // 500ms debounce
+            }, 500);
         }
 
-        // Handle BIN info response
         function handleBinInfoResponse(binInfo) {
-            console.log('BIN Info received:', binInfo);
-            
-            // Handle installment options based on canInstallment status
             if (binInfo.canInstallment) {
                 enableInstallmentOptions();
             } else {
@@ -541,19 +1349,16 @@
             }
         }
 
-        // Enable installment options
         function enableInstallmentOptions() {
             const installmentSelect = document.querySelector('#installment');
             if (installmentSelect) {
                 installmentSelect.disabled = false;
                 installmentSelect.style.opacity = '1';
                 
-                // Clear existing options except the first one
                 while (installmentSelect.children.length > 1) {
                     installmentSelect.removeChild(installmentSelect.lastChild);
                 }
                 
-                // Add installment options
                 const installmentOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
                 installmentOptions.forEach(count => {
                     const optionElement = document.createElement('option');
@@ -564,19 +1369,55 @@
             }
         }
 
-        // Disable installment options
         function disableInstallmentOptions() {
             const installmentSelect = document.querySelector('#installment');
             if (installmentSelect) {
                 installmentSelect.disabled = true;
                 installmentSelect.style.opacity = '0.5';
                 
-                // Clear existing options except the first one
                 while (installmentSelect.children.length > 1) {
                     installmentSelect.removeChild(installmentSelect.lastChild);
                 }
                 
-                // Ensure only single payment option exists
+                if (installmentSelect.children.length === 0) {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = 1;
+                    optionElement.textContent = '1 {{ text_installment_single }}';
+                    installmentSelect.appendChild(optionElement);
+                }
+            }
+        }
+
+        function enableSavedInstallmentOptions() {
+            const installmentSelect = document.querySelector('#installment_saved');
+            if (installmentSelect) {
+                installmentSelect.disabled = false;
+                installmentSelect.style.opacity = '1';
+
+                while (installmentSelect.children.length > 1) {
+                    installmentSelect.removeChild(installmentSelect.lastChild);
+                }
+
+                const installmentOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                installmentOptions.forEach(count => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = count;
+                    optionElement.textContent = count + ' ' + (count === 1 ? '{{ text_installment_single }}' : '{{ text_installment_plural }}');
+                    installmentSelect.appendChild(optionElement);
+                });
+            }
+        }
+
+        function disableSavedInstallmentOptions() {
+            const installmentSelect = document.querySelector('#installment_saved');
+            if (installmentSelect) {
+                installmentSelect.disabled = true;
+                installmentSelect.style.opacity = '0.5';
+
+                while (installmentSelect.children.length > 1) {
+                    installmentSelect.removeChild(installmentSelect.lastChild);
+                }
+
                 if (installmentSelect.children.length === 0) {
                     const optionElement = document.createElement('option');
                     optionElement.value = 1;
