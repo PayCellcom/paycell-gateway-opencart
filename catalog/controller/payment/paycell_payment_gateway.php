@@ -780,7 +780,7 @@ class PaycellPaymentGateway extends \Opencart\System\Engine\Controller
     private function generateTransactionId()
     {
         $timestamp = (string)(time() * 1000); 
-        $random = str_pad((string)rand(0, 9999999), 7, '0', STR_PAD_LEFT); 
+        $random = str_pad((string)random_int(0, 9999999), 7, '0', STR_PAD_LEFT); 
         return $timestamp . $random;
     }
 
